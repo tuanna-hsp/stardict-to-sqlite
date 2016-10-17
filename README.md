@@ -2,7 +2,7 @@
 - Extract stardict files, put `.ifo`, `.dict`, `.idx` and `.syn` (if available) in a same folder.
 - Open any of those files using the tool, then press `Convert`.
 
-Note: Some files maybe compressed, you should see something like `filename.dict.dz`, extract these files first (i use [7-Zip](http://www.7-zip.org/download.html)).
+Note: Some files maybe compressed, if you see something like `filename.dict.dz`, extract these files first (use [7-Zip](http://www.7-zip.org/download.html)).
 
 ##SQLite database
 There are two tables:
