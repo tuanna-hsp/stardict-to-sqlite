@@ -23,11 +23,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
 
 public class SQLiteHelper {
 
     private Connection connection;
     private Statement statement;
+    private PreparedStatement mainTableStmt;
+    private int mainTableBatchNum;
     private String databaseName;
 
     public SQLiteHelper() {
@@ -41,7 +44,7 @@ public class SQLiteHelper {
     public void createDatabase(String databaseName) {
         this.databaseName = databaseName;
         try {
-            connection = DriverManager.getConnection("jdbc:sqlite:");
+            connection = DriverManager.getConnection("jdbc:sqlite:"+databaseName+".db");
             statement = connection.createStatement();
             createMainTable();
             createSynTable();
@@ -51,20 +54,22 @@ public class SQLiteHelper {
     }
 
     private void createMainTable() {
-        String sql =    "CREATE TABLE main (" +
+        String sql =    "DROP TABLE IF EXISTS main; CREATE TABLE main (" +
                         "id         INTEGER PRIMARY KEY AUTOINCREMENT," +
                         "word       VARCHAR NOT NULL," +
                         "meaning    VARCHAR NOT NULL);" +
                         "CREATE INDEX word ON main (word ASC);";
         try {
             statement.executeUpdate(sql);
+            mainTableStmt = null;
+            mainTableBatchNum = 0;
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     private void createSynTable() {
-        String sql =    "CREATE TABLE syn (" +
+        String sql =    "DROP TABLE IF EXISTS syn; CREATE TABLE syn (" +
                         "synonym      VARCHAR NOT NULL," +
                         "word_id      INTEGER);" +
                         "CREATE INDEX synonym ON syn (synonym ASC);";
@@ -76,12 +81,33 @@ public class SQLiteHelper {
     }
 
     public void insertToMainTable(String word, String definition) {
-        word = escapeSqlString(word);
-        definition = escapeSqlString(definition);
-        String sql = "INSERT INTO main (word, meaning) " +
-                "VALUES ('" + word + "', '" + definition + "');";
         try {
-            statement.executeUpdate(sql);
+            if (mainTableStmt == null) {
+                String insertSQL = "INSERT INTO main (word, meaning) VALUES (?,?);";
+                mainTableStmt = connection.prepareStatement(insertSQL);
+                connection.setAutoCommit(false);
+            }
+            mainTableStmt.setString(1, word);
+            mainTableStmt.setString(2, definition);
+            mainTableStmt.addBatch();
+            mainTableBatchNum++;
+            if (mainTableBatchNum == 1000) {
+                flushMainTable();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void flushMainTable() {
+        try {
+            if (mainTableBatchNum > 0) {
+                mainTableStmt.executeBatch();
+                mainTableStmt.close();
+                connection.setAutoCommit(true);
+                mainTableStmt = null;
+                mainTableBatchNum = 0;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
