@@ -80,7 +80,7 @@ public class Main extends JFrame implements PropertyChangeListener {
 
                     String dictName = extractDictionaryName(file.getName());
                     helper.createDatabase(dictName);
-                    manager.setDictFilesLocation(file.getParent() + "\\", dictName);
+                    manager.setDictFilesLocation(file.getParent(), dictName);
 
                     // Show dict info to logger
                     logger.setText(null); // Clear out previous text

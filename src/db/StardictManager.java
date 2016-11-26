@@ -29,7 +29,7 @@ public class StardictManager {
     private IfoFileReader ifoReader;
 
     public void setDictFilesLocation(String path, String dictName) {
-        String pathToDict = path + dictName;
+        String pathToDict = (new java.io.File(path, dictName)).getPath();
 
         idxLoader = new IdxFileLoader(new File(pathToDict + ".idx"));
         dictLoader = new DictFileLoader(new File(pathToDict + ".dict"));
