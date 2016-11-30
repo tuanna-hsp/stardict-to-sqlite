@@ -141,7 +141,6 @@ public class Main extends JFrame implements PropertyChangeListener {
                 helper.insertToMainTable(word.getWord(), word.getDefinition());
                 setProgress(++count * 100 / totalWords);
             }
-            helper.flushMainTable();
 
             if (manager.hasSynFile()) {
                 logger.append("Processing .syn file...\n");

@@ -29,8 +29,6 @@ public class SQLiteHelper {
 
     private Connection connection;
     private Statement statement;
-    private PreparedStatement mainTableStmt;
-    private int mainTableBatchNum;
     private String databaseName;
 
     public SQLiteHelper() {
@@ -44,7 +42,7 @@ public class SQLiteHelper {
     public void createDatabase(String databaseName) {
         this.databaseName = databaseName;
         try {
-            connection = DriverManager.getConnection("jdbc:sqlite:"+databaseName+".db");
+            connection = DriverManager.getConnection("jdbc:sqlite:");
             statement = connection.createStatement();
             createMainTable();
             createSynTable();
@@ -61,8 +59,6 @@ public class SQLiteHelper {
                         "CREATE INDEX word ON main (word ASC);";
         try {
             statement.executeUpdate(sql);
-            mainTableStmt = null;
-            mainTableBatchNum = 0;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -81,47 +77,28 @@ public class SQLiteHelper {
     }
 
     public void insertToMainTable(String word, String definition) {
+        String insertSQL = "INSERT INTO main (word, meaning) VALUES (?,?);";
         try {
-            if (mainTableStmt == null) {
-                String insertSQL = "INSERT INTO main (word, meaning) VALUES (?,?);";
-                mainTableStmt = connection.prepareStatement(insertSQL);
-                connection.setAutoCommit(false);
-            }
-            mainTableStmt.setString(1, word);
-            mainTableStmt.setString(2, definition);
-            mainTableStmt.addBatch();
-            mainTableBatchNum++;
-            if (mainTableBatchNum == 1000) {
-                flushMainTable();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void flushMainTable() {
-        try {
-            if (mainTableBatchNum > 0) {
-                mainTableStmt.executeBatch();
-                mainTableStmt.close();
-                connection.setAutoCommit(true);
-                mainTableStmt = null;
-                mainTableBatchNum = 0;
-            }
+            PreparedStatement stmt = connection.prepareStatement(insertSQL);
+            stmt.setString(1, word);
+            stmt.setString(2, definition);
+            stmt.executeUpdate();
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     public void insertToSynTable(String synonym, int wordIndex) {
-        synonym = escapeSqlString(synonym);
-        // Need to add 1 to synIndex before inserting, because by default the start value
-        // of SQLite autoincrement is 1, whereas stardict synonym indexes start at 0
-        String sql = "INSERT INTO syn (synonym, word_id) " +
-                "VALUES ('" + synonym + "', " + (wordIndex + 1) + ");";
-
+        String sql = "INSERT INTO syn (synonym, word_id) VALUES (?,?);";
         try {
-            statement.executeUpdate(sql);
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            stmt.setString(1, synonym);
+            // Need to add 1 to synIndex before inserting, because by default the start value
+            // of SQLite autoincrement is 1, whereas stardict synonym indexes start at 0
+            stmt.setInt(2, wordIndex + 1);
+            stmt.executeUpdate();
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
