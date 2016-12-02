@@ -23,6 +23,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
 
 public class SQLiteHelper {
 
@@ -51,7 +52,7 @@ public class SQLiteHelper {
     }
 
     private void createMainTable() {
-        String sql =    "CREATE TABLE main (" +
+        String sql =    "DROP TABLE IF EXISTS main; CREATE TABLE main (" +
                         "id         INTEGER PRIMARY KEY AUTOINCREMENT," +
                         "word       VARCHAR NOT NULL," +
                         "meaning    VARCHAR NOT NULL);" +
@@ -64,7 +65,7 @@ public class SQLiteHelper {
     }
 
     private void createSynTable() {
-        String sql =    "CREATE TABLE syn (" +
+        String sql =    "DROP TABLE IF EXISTS syn; CREATE TABLE syn (" +
                         "synonym      VARCHAR NOT NULL," +
                         "word_id      INTEGER);" +
                         "CREATE INDEX synonym ON syn (synonym ASC);";
@@ -76,26 +77,28 @@ public class SQLiteHelper {
     }
 
     public void insertToMainTable(String word, String definition) {
-        word = escapeSqlString(word);
-        definition = escapeSqlString(definition);
-        String sql = "INSERT INTO main (word, meaning) " +
-                "VALUES ('" + word + "', '" + definition + "');";
+        String insertSQL = "INSERT INTO main (word, meaning) VALUES (?,?);";
         try {
-            statement.executeUpdate(sql);
+            PreparedStatement stmt = connection.prepareStatement(insertSQL);
+            stmt.setString(1, word);
+            stmt.setString(2, definition);
+            stmt.executeUpdate();
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
     public void insertToSynTable(String synonym, int wordIndex) {
-        synonym = escapeSqlString(synonym);
-        // Need to add 1 to synIndex before inserting, because by default the start value
-        // of SQLite autoincrement is 1, whereas stardict synonym indexes start at 0
-        String sql = "INSERT INTO syn (synonym, word_id) " +
-                "VALUES ('" + synonym + "', " + (wordIndex + 1) + ");";
-
+        String sql = "INSERT INTO syn (synonym, word_id) VALUES (?,?);";
         try {
-            statement.executeUpdate(sql);
+            PreparedStatement stmt = connection.prepareStatement(sql);
+            stmt.setString(1, synonym);
+            // Need to add 1 to synIndex before inserting, because by default the start value
+            // of SQLite autoincrement is 1, whereas stardict synonym indexes start at 0
+            stmt.setInt(2, wordIndex + 1);
+            stmt.executeUpdate();
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
